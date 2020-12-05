@@ -1,6 +1,6 @@
 # **Lecture Notes 1**
 
-## **Artifficial Intelligence (AI)**
+## **Artificial Intelligence (AI)**
 
 * We will explore ideas of AI: problems where computers try to solve some general problems
 
