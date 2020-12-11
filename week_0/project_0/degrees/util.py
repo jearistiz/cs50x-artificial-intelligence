@@ -3,6 +3,14 @@ class Node():
         self.state = state
         self.parent = parent
         self.action = action
+    
+    def __eq__(self, o) -> bool:
+        if not isinstance(o, Node):
+            return False
+        elif self.state == o.state:
+            return True
+        else:
+            return False
 
 
 class StackFrontier():

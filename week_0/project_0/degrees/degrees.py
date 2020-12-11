@@ -84,6 +84,18 @@ def main():
             print(f"{i + 1}: {person1} and {person2} starred in {movie}")
 
 
+def get_path(current_node: Node):
+    """
+    Given a target node, builds the requiredpath
+    """
+    path = []
+    while current_node.parent:
+        path.append((current_node.parent[0], current_node.state))
+        current_node = current_node.parent[1]
+    path.reverse()
+    return path
+
+
 def shortest_path(source, target):
     """
     Returns the shortest list of (movie_id, person_id) pairs
@@ -91,9 +103,45 @@ def shortest_path(source, target):
 
     If no possible path, returns None.
     """
+    source_neighbors: set = neighbors_for_person(source)
+    
+    if source == target:
+        return [(source_neighbors.pop()[0], source)]
 
-    # TODO
-    raise NotImplementedError
+    visited_nodes = []
+
+    source_node = Node(state=source, parent=None, action=source_neighbors)
+
+    frontier = QueueFrontier()
+    frontier.add(source_node)
+
+    while not frontier.empty():
+        current_node: Node = frontier.remove()
+        
+        if current_node.state == target:
+            return get_path(current_node)
+        
+        visited_nodes.append(current_node)
+
+        for neighbor in current_node.action:
+            movie_id=neighbor[0]
+            neighbor_id=neighbor[1]
+            
+            neighbor_node = Node(
+                state=neighbor_id,
+                parent=(movie_id, current_node),
+                action=neighbors_for_person(neighbor_id)
+            )
+            
+            if neighbor_id==target:
+                return get_path(neighbor_node)
+            elif (
+                neighbor_node not in visited_nodes
+                and neighbor_node not in frontier.frontier
+            ):
+                frontier.add(neighbor_node)
+
+    return None
 
 
 def person_id_for_name(name):
