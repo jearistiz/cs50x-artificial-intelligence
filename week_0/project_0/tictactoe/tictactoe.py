@@ -82,7 +82,7 @@ def terminal(board: list) -> bool:
     Returns True if game is over, False otherwise.
     """
     board_full = all(all(line) for line in board)
-    return board_full or bool(winner(board))
+    return board_full or winner(board)
 
 
 def utility(board: list) -> Literal[1, 0, -1]:
@@ -136,37 +136,3 @@ def minimax(board: list):
         i = utility_values.index(min(utility_values))
 
     return possible_actions[i]
-
-
-if __name__ == "__main__":
-    # Test next player
-    board = initial_state()
-    board[0][0] = X
-
-    # Test next player
-    next = player(board)
-    print('Next player: ' + next)
-
-    # Test actions
-    actions_set = actions(board)
-    print('Possible actions: ', actions_set)
-
-    # Test next result
-    next_result = result(board, (0, 1))
-    print('Result: ', next_result)
-
-    # Test winning boards
-    for state in winning_states:
-        board_x = initial_state()
-        board_o = initial_state()
-        for position in state:
-            i, j = position
-            board_x[i][j] = X
-            board_o[i][j] = O
-        print(
-            'Winning State: ',  state,
-            '   Winner: ', winner(board_x), ' ', winner(board_o),
-            '   Utility: ', utility(board_x),'  ', utility(board_o)
-        )
-    print('Winner? ', winner(board), '    Utility? ', utility(board))
-    print('Minimax: ', minimax(board))
