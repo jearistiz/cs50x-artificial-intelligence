@@ -1,5 +1,7 @@
 import itertools
 import random
+from typing import List
+from copy import deepcopy
 
 
 class Minesweeper():
@@ -105,27 +107,29 @@ class Sentence():
         """
         Returns the set of all cells in self.cells known to be mines.
         """
-        raise NotImplementedError
+        return self.cells if len(self.cells) == self.count else set()
 
     def known_safes(self):
         """
         Returns the set of all cells in self.cells known to be safe.
         """
-        raise NotImplementedError
+        return self.cells if self.count == 0 else set()
 
     def mark_mine(self, cell):
         """
         Updates internal knowledge representation given the fact that
         a cell is known to be a mine.
         """
-        raise NotImplementedError
+        if cell in self.cells:
+            self.cells.remove(cell)
+            self.count -= 1
 
     def mark_safe(self, cell):
         """
         Updates internal knowledge representation given the fact that
         a cell is known to be safe.
         """
-        raise NotImplementedError
+        self.cells.discard(cell)
 
 
 class MinesweeperAI():
@@ -182,7 +186,78 @@ class MinesweeperAI():
             5) add any new sentences to the AI's knowledge base
                if they can be inferred from existing knowledge
         """
-        raise NotImplementedError
+        def mark_cells():
+            for sentence in self.knowledge:
+                for mine_cell in sentence.known_mines().copy():
+                    self.mark_mine(mine_cell)
+                for safe_cell in sentence.known_safes().copy():
+                    self.mark_safe(safe_cell)
+        
+        def purge_knowledge():
+            """Deletes all null sentences from knowledge ({} = 0)"""
+            self.knowledge = [
+                sentence for sentence in self.knowledge if sentence != Sentence(set(), 0)
+            ]
+
+        def update_knowledge_once():
+            updated_knowledge: bool = False
+            purge_knowledge()
+            knowledge_copy = deepcopy(self.knowledge)
+            for sentence_1 in knowledge_copy:
+                for sentence_2 in knowledge_copy:
+                    if sentence_1 == sentence_2 or not sentence_2.cells:
+                        continue
+                    elif sentence_1.cells > sentence_2.cells:
+                        new_sentence = Sentence(
+                            sentence_1.cells - sentence_2.cells,
+                            sentence_1.count - sentence_2.count
+                        )
+                        if new_sentence not in self.knowledge:
+                            self.knowledge.append(new_sentence)
+                            updated_knowledge = True
+            return updated_knowledge
+        
+        def print_status():
+            print('Move: ', cell)
+            print('KNOWLEDGE BASE:')
+            for sentence in self.knowledge:
+                print(str(sentence))
+            print('SAFE: ', self.safes)
+            print('MINES: ', self.mines)
+
+        def update_knowledge():
+            # print_status()
+            mark_cells()
+            updated_knowledge = update_knowledge_once()
+            if not updated_knowledge:
+                return
+            else:
+                return update_knowledge()
+        
+        self.moves_made.add(cell)
+        self.mark_safe(cell)
+
+        i, j = cell
+        deltas = (-1, 0, 1)
+        values_i = range(self.height)
+        values_j = range(self.width)
+        sentence_cells = set()
+
+        for k in deltas:
+            for l in deltas:
+                ni, nj = new_cell = (i + k, j + l)
+                if not (ni in values_i and nj in values_j):
+                    continue
+                elif new_cell not in (self.safes | self.moves_made):
+                    sentence_cells.add(new_cell)
+
+        self.knowledge.append(Sentence(sentence_cells, count))
+
+        update_knowledge()
+
+        # print('##############################################################')
+        # print('\n\n')
+        # print('##############################################################')
 
     def make_safe_move(self):
         """
@@ -193,7 +268,8 @@ class MinesweeperAI():
         This function may use the knowledge in self.mines, self.safes
         and self.moves_made, but should not modify any of those values.
         """
-        raise NotImplementedError
+        possible_moves = self.safes - self.moves_made
+        return next(iter(possible_moves)) if possible_moves else None
 
     def make_random_move(self):
         """
@@ -202,4 +278,8 @@ class MinesweeperAI():
             1) have not already been chosen, and
             2) are not known to be mines
         """
-        raise NotImplementedError
+        all_cells = set(
+            (i, j) for i in range(self.height) for j in range(self.width)
+        )
+        possible_moves = all_cells - (self.mines | self.moves_made)
+        return next(iter(possible_moves)) if possible_moves else None
