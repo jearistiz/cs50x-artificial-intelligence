@@ -116,6 +116,10 @@ def iterate_pagerank(corpus, damping_factor):
     Return a dictionary where keys are page names, and values are
     their estimated PageRank value (a value between 0 and 1). All
     PageRank values should sum to 1.
+
+    Warning
+    -------
+    If this fails just try to evaluate the while loop by one iteration less.
     """
     def page_rank_formula(
         page: str, parents: dict, pages_rank: dict, N_links: dict, N_pages
