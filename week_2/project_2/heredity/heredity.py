@@ -142,56 +142,36 @@ def normalize_distribution(dist: Dict[Any, float]):
 def p_not_p(p):
     """p is the probability that something occurs 1 - p that something
     does not occur"""
-    return [p, 1 - p]
+    return {True: p, False: 1 - p}
 
 
-def inherit_n_genes_prob(n_father, n_mother, mutation_prob) -> Dict:
+def prob_inherit(n, mutation_prob):
+    """returns probability of inheriting the gene from a single parent
+    given that the parent has n genes"""
+    p_inherit = p_not_p(n / 2)
+    p_mutation = p_not_p(mutation_prob)
+    return p_inherit[1] * p_mutation[0] + p_inherit[0] * p_mutation[1]
+
+
+def inherit_n_genes_prob(n, n_father, n_mother, mutation_prob) -> Dict:
     """Returns dictionary with distribution of conditional probability of
     inherited genes given that father has n_father genes and mother has
     n_mother genes, taking into account probability of mutations."""
-    # Probabilities: [inherits from father, does not inherit from father]
-    probs_f = p_not_p(n_father / 2)
 
-    # Probabilities: [inherits from mother, does not inherit from mother]
-    probs_m = p_not_p(n_mother / 2)
+    # Probabily distributions:
+    # key 0 or False: probability of not inheriting the gene from parent
+    # key 1 or True: probability of inheriting the gene from parent
+    probs_f: Dict[bool, float] = p_not_p(prob_inherit(n_father,  mutation_prob))
+    probs_m: Dict[bool, float] = p_not_p(prob_inherit(n_mother,  mutation_prob))
 
-    # Probabilities: [gene mutates, gene does not mutate]
-    mutation_prob = p_not_p(mutation_prob)
-    probs_mut = {
-        # Both genes mutate
-        2: mutation_prob[0] ** 2,
-        # Just one gene mutates
-        1: 2 * mutation_prob[1] * mutation_prob[0],
-        # None of the genes mutate
-        0: mutation_prob[1] ** 2
-    }
-
-    # Assuming no mutations at all
-    genes_prob_no_mut = {
-        # Prob to inherit from both parents (no mutation)
-        2: probs_f[0] * probs_m[0],
-        # Prob to inherit from one parent only (no mutation)
-        1: probs_f[0] * probs_m[1] + probs_f[1] * probs_m[0],
-        # Prom to not inherit at all (no mutation)
-        0: probs_f[1] * probs_m[1],
-    }
-
-    # Include mutations
-    genes_prob = {
-        # Prob to inherit from both parents
-        2: (genes_prob_no_mut[2] * probs_mut[0] 
-            + genes_prob_no_mut[1] * mutation_prob[0] * mutation_prob[1]   
-            + genes_prob_no_mut[0] * probs_mut[2]),
-        # Prob to inherit from one parent only
-        1: (genes_prob_no_mut[1] * probs_mut[0]
-            + (genes_prob_no_mut[0] + genes_prob_no_mut[2]) * probs_mut[1]),
+    return (
         # Prob to not inherit at all
-        0: (genes_prob_no_mut[2] * probs_mut[2]
-            + genes_prob_no_mut[1] * mutation_prob[0] * mutation_prob[1]
-            + genes_prob_no_mut[0] * probs_mut[0])
-    }
-
-    return genes_prob
+        probs_f[0] * probs_m[0] if n == 0
+        # Prob to inherit from one parent only
+        else probs_f[1] * probs_m[0] + probs_f[0] * probs_m[1] if n == 1
+        # Prob to inherit from both parents
+        else probs_f[1] * probs_m[1]
+    )
 
 
 def joint_probability(people: Set, one_gene: Set, two_genes: Set, have_trait):
@@ -216,10 +196,9 @@ def joint_probability(people: Set, one_gene: Set, two_genes: Set, have_trait):
         if father and mother:
             n_genes_father = number_of_genes(father, one_gene, two_genes)
             n_genes_mother = number_of_genes(mother, one_gene, two_genes)
-            genes_probab = inherit_n_genes_prob(
-                n_genes_father, n_genes_mother, PROBS["mutation"]
+            joint_prob *= inherit_n_genes_prob(
+                n_genes_person, n_genes_father, n_genes_mother, PROBS["mutation"]
             )
-            joint_prob *= genes_probab[n_genes_person]
         else:
             joint_prob *= PROBS["gene"][n_genes_person]
 
@@ -238,9 +217,9 @@ def update(probabilities: Dict, one_gene, two_genes, have_trait, p):
     """
     for person, probability in probabilities.items():
         n_genes = number_of_genes(person, one_gene, two_genes)
-        has_trait = person in have_trait
-
         probability['gene'][n_genes] += p
+
+        has_trait = person in have_trait
         probability['trait'][has_trait] += p
 
 
